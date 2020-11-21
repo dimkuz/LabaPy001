@@ -1,25 +1,17 @@
-from numtostr import num2text
-from numtostr import decimal2text
-
-
 class Money:
     rub = 0
     kop = 0
+    sign = 1
 
     def __init__(self, init_sign: int, init_rub: int, init_kop: int) -> object:
-        self.sign = init_sign // abs(init_sign)
+        # sign=1     positive sum
+        # sign=0     negative sum
+        if init_sign == 0:
+            self.sign = 0
+        else:
+            self.sign = init_sign // abs(init_sign)
         self.rub = int(abs(init_rub))
         self.kop = int(abs(init_kop) % 100)
-
-    def by_words_rus(self):
-        return num2text(self.rub,
-                        ((u'рубль', u'рубля', u'рублей'), 'f')) + " " \
-               + num2text(self.kop,
-                          ((u'копейка', u'копейки', u'копеек'), 'f')
-                          )
-
-    def by_words_eng(self):
-        pass
 
     def __truediv__(self, other):
         if type(other) is Money:
@@ -27,6 +19,7 @@ class Money:
             b = other.sign * (100 * other.rub + other.kop)
             c = a / b
             return c
+        # else?
         if type(other) is not Money:
             a = self.sign * (100 * self.rub + self.kop)
             b = float(other)
@@ -48,7 +41,7 @@ class Money:
         c = abs(c)
         return Money(sign, (c // 100), c % 100)
 
-    def __rmul__(self, other):  # __mul__ и __rmul__ это одно и то же
+    def __rmul__(self, other):  # __mul__ и __rmul__ это одно и то же. как вызвать метод __mul__ ?
         a = self.sign * (100 * self.rub + self.kop)
         c = other * a
         if c < 0:
@@ -91,11 +84,17 @@ class Money:
 
     def __eq__(self, other):  # x == y вызывает  x.__eq__(y).
         if type(other) is not Money: raise Exception('incompatible type for comparing')
-        return (self.sign == other.sign) & (self.rub == other.rub) & (self.kop == other.kop)
+        if self.kop == self.rub == other.kop == other.rub == 0:
+            return True
+        else:
+            return (self.sign == other.sign) & (self.rub == other.rub) & (self.kop == other.kop)
 
     def __ne__(self, other):  # x != y вызывает  x.__ne__(y)
         if type(other) is not Money: raise Exception('incompatible type for comparing')
-        return not (self.sign == other.sign) & (self.rub == other.rub) & (self.kop == other.kop)
+        if self.kop == self.rub == other.kop == other.rub == 0:
+            return False
+        else:
+            return not (self.sign == other.sign) & (self.rub == other.rub) & (self.kop == other.kop)
 
     def __gt__(self, other):  # x > y  вызывает  x.__gt__(y).
         if type(other) is not Money: raise Exception('incompatible type for comparing')
