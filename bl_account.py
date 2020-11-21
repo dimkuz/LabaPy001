@@ -1,4 +1,4 @@
-from money import Money
+from bl_money import Money
 
 
 class Account:

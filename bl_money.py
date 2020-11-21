@@ -54,7 +54,7 @@ class Money:
     def __add__(self, other):
         if type(other) is not Money: raise Exception('error in add')
         a = self.sign * (100 * self.rub + self.kop)
-        b = other.sign * (100 * other.rub + other.kop)
+        b = other.sign * (100 * other.rub + other.kop)    # происходит ерунда если sign=0
         c = a + b
         if c < 0:
             sign = -1
@@ -66,7 +66,7 @@ class Money:
     def __sub__(self, other):
         if type(other) is not Money: raise Exception('error in sub')
         a = self.sign * (100 * self.rub + self.kop)
-        b = other.sign * (100 * other.rub + other.kop)
+        b = other.sign * (100 * other.rub + other.kop)   # происходит ерунда если sign=0
         c = a - b
         if c < 0:
             sign = -1

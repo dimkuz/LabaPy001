@@ -1,85 +1,130 @@
 import sys
 from PyQt5 import QtWidgets
-# from PyQt5 import QtCore, QtGui, QtWidgets
-from des import Ui_MainWindow
-# from accbase import *
+from PyQt5.QtWidgets import QTableWidgetItem
+
+from ui_graph_des import Ui_MainWindow
+from ui_interface import *
+#from db_interface import *
+#import bl_money
 
 
 class MyWin(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
-        QtWidgets.QWidget.__init__(self, parent)
+    db = None
+    current_account = -1
+
+    def __init__(self, db_init):
+        QtWidgets.QWidget.__init__(self)
+        self.db = db_init
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        base = ExampleBase()
-        self.ui.tableWidget.clear()
-        
+        self.update_table()
 
+        self.ui.tableWidget.cellClicked.connect(self.cell_clicked)
 
+        self.ui.buttonBox.accepted.connect(self.save_new_acc)
+        self.ui.buttonBox_2.accepted.connect(self.change_owner)
+        self.ui.buttonBox_3.accepted.connect(self.pop_money)
+        self.ui.buttonBox_4.accepted.connect(self.push_money)
+        self.ui.buttonBox_5.accepted.connect(self.charge_procent)
 
-        # кликаем на строки, меняем поля в закладках
-        self.ui.tableWidget.itemPressed.connect(self.update_fields)
+        self.ui.buttonBox.rejected.connect(self.reject_changes)
+        self.ui.buttonBox_2.rejected.connect(self.reject_changes)
+        self.ui.buttonBox_3.rejected.connect(self.reject_changes)
+        self.ui.buttonBox_4.rejected.connect(self.reject_changes)
+        self.ui.buttonBox_5.rejected.connect(self.reject_changes)
 
-        # начислить проценты
-        self.ui.buttonBox_5.accepted.connect(self.handler)
-        self.ui.buttonBox_5.rejected.connect(self.handler1)
-
-        # внести деньги
-        self.ui.buttonBox_4.accepted.connect(self.handler)
-        self.ui.buttonBox_4.rejected.connect(self.handler1)
-
-        # снять деньги
-        self.ui.buttonBox_3.accepted.connect(self.handler)
-        self.ui.buttonBox_3.rejected.connect(self.handler1)
-
-        # сменить владельца
-        self.ui.buttonBox_2.accepted.connect(self.handler)
-        self.ui.buttonBox_2.rejected.connect(self.handler1)
-
-        # открыть новый счет
-        self.ui.buttonBox.accepted.connect(self.create_new_acc_accept)
-        self.ui.buttonBox.rejected.connect(self.create_new_acc_reject)
-
-    def update_fields(self):
-        row = self.ui.tableWidget.currentRow()
-        name = self.ui.tableWidget.item(row, 0).text()
-        acc = self.ui.tableWidget.item(row, 1).text()
-        proc = self.ui.tableWidget.item(row, 2).text()
-        sum = self.ui.tableWidget.item(row, 3).text()
-        self.ui.lineEdit_1.setText(name)
-        self.ui.lineEdit_5.setText(name)
-        self.ui.lineEdit_2.setText(acc)
-        self.ui.lineEdit_3.setText(proc)
-        self.ui.lineEdit_12.setText(proc)
-        self.ui.lineEdit_4.setText(sum)
-        self.ui.lineEdit_7.setText(sum)
-        self.ui.lineEdit_9.setText(sum)
-        self.ui.lineEdit_11.setText(sum)
-
-    def create_new_acc_accept(self):
-        self.ui.tableWidget.setRowCount(self.ui.tableWidget.rowCount() + 1)
-        r = self.ui.tableWidget.rowCount() - 1
-        self.ui.tableWidget.setItem(r, 0, QtWidgets.QTableWidgetItem(self.ui.lineEdit_1.text()))
-        self.ui.tableWidget.setItem(r, 1, QtWidgets.QTableWidgetItem(self.ui.lineEdit_2.text()))
-        self.ui.tableWidget.setItem(r, 2, QtWidgets.QTableWidgetItem(self.ui.lineEdit_3.text()))
-        self.ui.tableWidget.setItem(r, 3, QtWidgets.QTableWidgetItem(self.ui.lineEdit_4.text()))
-        self.ui.tableWidget.resizeColumnsToContents()
-
-    def create_new_acc_reject(self):
+    def reject_changes(self):
+        self.ui.lineEdit_11.clear()
+        self.ui.lineEdit_12.clear()
+        self.ui.lineEdit_9.clear()
+        self.ui.lineEdit_7.clear()
+        self.ui.lineEdit_5.clear()
         self.ui.lineEdit_1.clear()
         self.ui.lineEdit_2.clear()
         self.ui.lineEdit_3.clear()
         self.ui.lineEdit_4.clear()
 
-    def handler(self):
-        pass
+    def str_to_money(self,str):
+        return Money(1, 0, 0)
 
-    def handler1(self):
-        pass
+    def save_new_acc(self):
+        print("save new account")
+        add_account(self.db, Account(
+            self.ui.lineEdit_1.text(),
+            str(get_uniq_acc_num()),
+            self.str_to_money(self.ui.lineEdit_4.text()),
+            float(self.ui.lineEdit_3.text()),
+        ))
+        self.update_table()
+        self.ui.tableWidget.selectRow(self.db.length()-1)
+        self.cell_clicked(self.db.length()-1)
 
 
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    myapp = MyWin()
-    myapp.show()
-    sys.exit(app.exec_())
+    def change_owner(self):
+        print("change owner")
+        rename_owner(self.db, self.current_account, self.ui.lineEdit_6.text())
+        self.update_table()
+
+    def pop_money(self):
+        print("pop money")
+        try:
+            rub = int(float(self.ui.lineEdit_8.text()))
+            kop = int(100*float(self.ui.lineEdit_8.text())-100*rub)
+            pop_money(self.db, self.current_account, Money(1, rub, kop))
+        except ValueError:
+            print("wrong input")
+        self.update_table()
+
+    def push_money(self):
+        print("push money")
+        try:
+            rub = int(float(self.ui.lineEdit_10.text()))
+            kop = int(100*float(self.ui.lineEdit_10.text())-100*rub)
+            push_money(self.db, self.current_account, Money(1, rub, kop))
+        except ValueError:
+            print("wrong input")
+        self.update_table()
+
+    def charge_procent(self):
+        print("charge procent")
+        try:
+            days = int(self.ui.lineEdit_13.text())
+            charge_percent(self.db, self.current_account, days)
+        except ValueError:
+            print("wrong input")
+        self.update_table()
+
+    def update_table(self):
+        self.ui.tableWidget.setRowCount(self.db.length())
+        i = 0
+        while i < self.db.length():
+            self.ui.tableWidget.setItem(i, 0, QTableWidgetItem(str(self.db.get_acc(i).get_surname())))
+            self.ui.tableWidget.setItem(i, 1, QTableWidgetItem(str(self.db.get_acc(i).get_num())))
+            self.ui.tableWidget.setItem(i, 2, QTableWidgetItem(str(self.db.get_acc(i).get_percent())))
+            self.ui.tableWidget.setItem(i, 3, QTableWidgetItem(str(self.db.get_acc(i).get_sum())))
+            i += 1
+
+    def cell_clicked(self, row):
+        self.current_account = row
+        self.ui.lineEdit_11.setText(str(self.db.get_acc(row).get_surname()))
+        self.ui.lineEdit_12.setText(str(self.db.get_acc(row).get_percent()))
+        self.ui.lineEdit_9.setText(str(self.db.get_acc(row).get_sum()))
+        self.ui.lineEdit_7.setText(str(self.db.get_acc(row).get_sum()))
+        self.ui.lineEdit_5.setText(str(self.db.get_acc(row).get_surname()))
+        self.ui.lineEdit_1.setText(str(self.db.get_acc(row).get_surname()))
+        self.ui.lineEdit_2.setText(str(self.db.get_acc(row).get_num()))
+        self.ui.lineEdit_3.setText(str(self.db.get_acc(row).get_percent()))
+        self.ui.lineEdit_4.setText(str(self.db.get_acc(row).get_sum()))
+
+
+class GraphUI(UI_interface):
+    # db = link to database
+    def __init__(self, db):
+        super().__init__(db)
+
+    def start(self):
+        app = QtWidgets.QApplication(sys.argv)
+        myapp = MyWin(self.db)
+        myapp.show()
+        sys.exit(app.exec_())
